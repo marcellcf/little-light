@@ -64,7 +64,7 @@ HTML_ANIMATION = r'''<!doctype html>
     <button class="ikon" id="bMain" aria-label="Play">▶</button>
     <button class="ikon" id="bUlang" aria-label="Restart">↺</button>
     <div class="bar" id="bar" role="slider" aria-label="Position" tabindex="0"><div id="isi"></div></div>
-    <span class="waktu" id="waktu">0.0 / 42.0</span>
+    <span class="waktu" id="waktu">0.0 / 50.0</span>
   </div>
 </div>
 <script>
@@ -502,11 +502,27 @@ function buatDunia(R) {
   rb.blob = N(G.bidang, MAT.blob, [0, .004, 0], [.45, .4, 1], [-Math.PI / 2, 0, 0]);
   const nodeRobot = Object.values(rb);
 
+  // ---- little robin (root at its feet)
+  const brd = { root: N(null, null) };
+  const bulu = mat('#8a5a3a', { rough: .7, spec: .1 }), dada = mat('#e8864a', { rough: .7, spec: .1 }), paruh = mat('#f0c040', { rough: .5 }), hitam = mat('#101010', { unlit: true });
+  brd.badan = N(G.bola, bulu, [0, .045, 0], [.07, .06, .095], [0, 0, 0], brd.root);
+  brd.dada = N(G.bola, dada, [0, .04, .022], [.058, .05, .06], [0, 0, 0], brd.root);
+  brd.ekor = N(G.bola, bulu, [0, .06, -.06], [.03, .008, .06], [-.4, 0, 0], brd.root);
+  brd.kepala = N(null, null, [0, .085, .03], [1, 1, 1], [0, 0, 0], brd.root);
+  brd.kepalaBola = N(G.bola, bulu, [0, 0, 0], [.048, .046, .05], [0, 0, 0], brd.kepala);
+  brd.muka = N(G.bola, dada, [0, -.006, .012], [.036, .03, .036], [0, 0, 0], brd.kepala);
+  brd.paruh = N(G.bola, paruh, [0, -.002, .034], [.009, .008, .022], [0, 0, 0], brd.kepala);
+  brd.mataL = N(G.bola, hitam, [-.017, .008, .018], [.008, .008, .008], [0, 0, 0], brd.kepala); brd.mataR = N(G.bola, hitam, [.017, .008, .018], [.008, .008, .008], [0, 0, 0], brd.kepala);
+  brd.sayapL = N(null, null, [-.03, .055, 0], [1, 1, 1], [0, 0, 0], brd.root); brd.sayapR = N(null, null, [.03, .055, 0], [1, 1, 1], [0, 0, 0], brd.root);
+  brd.sayapLb = N(G.bola, bulu, [-.035, 0, -.01], [.07, .012, .075], [0, 0, 0], brd.sayapL); brd.sayapRb = N(G.bola, bulu, [.035, 0, -.01], [.07, .012, .075], [0, 0, 0], brd.sayapR);
+  brd.kakiL = N(G.silinder, paruh, [-.012, .01, .005], [.006, .025, .006], [0, 0, 0], brd.root); brd.kakiR = N(G.silinder, paruh, [.012, .01, .005], [.006, .025, .006], [0, 0, 0], brd.root);
+  const nodeBurung = Object.values(brd);
+
   // dust motes
   const r = rngS(77);
   const DEBU = Array.from({ length: 60 }, () => ({ n: N(G.bidang, MAT.debu, [0, 0, 0], [.012, .012, 1]), x: WX - .8 + r() * 1.6, y: .1 + r() * 2.0, z: -2.3 + r() * 1.8, f: r() * 9, s: .5 + r() }));
 
-  return { G, MAT, T, statis, tanaman, rb, nodeRobot, DEBU, luar, hujanN, kacaN, tiraiL, tiraiR, bohlam, WX, WY0, WY1, WZ, PX, PZ };
+  return { G, MAT, T, statis, tanaman, rb, nodeRobot, burung: brd, nodeBurung, DEBU, luar, hujanN, kacaN, tiraiL, tiraiR, bohlam, WX, WY0, WY1, WZ, PX, PZ };
 }
 
 // world matrices
@@ -520,7 +536,8 @@ function kumpulkan(nodes, out) {
 // =====================================================================
 //  STORY: shots, animation, lighting, sound
 // =====================================================================
-const DUR = 42;
+const DUR = 50;
+const BURUNG_DARAT = [.69, .36, -1.99];
 const klem = (v, a = 0, b = 1) => Math.max(a, Math.min(b, v));
 const lerp = (a, b, t) => a + (b - a) * t;
 const eio = t => { t = klem(t); return t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2; };
@@ -535,11 +552,12 @@ function posRobot(t, D) {
   const jalan = u(t, 12.2, 17.2), e = halus(jalan);
   const pos = lerpV(TITIK_A, TITIK_B, e);
   const dx = TITIK_B[0] - TITIK_A[0], dz = TITIK_B[2] - TITIK_A[2], yawJalan = Math.atan2(dx, dz);
-  const yawTanaman = Math.atan2(D.PX - TITIK_B[0], D.PZ - TITIK_B[2]), yawJendela = Math.atan2(D.WX - TITIK_B[0] - .1, D.WZ - TITIK_B[2]);
+  const yawTanaman = Math.atan2(D.PX - TITIK_B[0], D.PZ - TITIK_B[2]), yawJendela = Math.atan2(D.WX - TITIK_B[0] - .1, D.WZ - TITIK_B[2]), yawBurung = Math.atan2(BURUNG_DARAT[0] - TITIK_B[0], BURUNG_DARAT[2] - TITIK_B[2]) - .25;
   let yaw = YAW_A;
   if (t > 11.6) yaw = lerp(YAW_A, yawJalan, eio(u(t, 11.6, 12.6)));
   if (t > 16.6) yaw = lerp(yawJalan, yawTanaman, eio(u(t, 16.6, 17.8)));
-  if (t > 32.2) yaw = lerp(yawTanaman, yawJendela, eio(u(t, 32.2, 33.6)));
+  if (t > 33.2) yaw = lerp(yawTanaman, yawBurung, eio(u(t, 33.2, 34.0)));
+  if (t > 41.5) yaw = lerp(yawBurung, yawJendela, eio(u(t, 41.5, 43)));
   const langkah = jalan > 0 && jalan < 1 ? (t - 12.2) * 9.5 : 0;
   return { pos, yaw, langkah, berjalan: jalan > 0 && jalan < 1 };
 }
@@ -560,20 +578,20 @@ function animasiRobot(t, D) {
   const penasaran = eio(u(t, 18.4, 19.4)) * (1 - eio(u(t, 22.6, 23.4)));
   const condong = eio(u(t, 20.2, 21.2)) * (1 - eio(u(t, 23.8, 24.8)));
   const senang = eio(u(t, 29.6, 30.2)) * (1 - eio(u(t, 31.6, 32.4)));
-  const akhir = eio(u(t, 33.4, 34.6));
-  rb.kepala.r = [lesu * .42 + condong * .22 - senang * .15 - akhir * .12 + Math.sin(t * 1.3) * .015, lihatJendela * -.7 + akhir * -.25, penasaran * .28 * Math.sin(t * .9 + .5) + penasaran * .15 + akhir * .12];
+  const akhir = eio(u(t, 41.8, 43)), kaget = eio(u(t, 33.3, 33.8)) * (1 - eio(u(t, 35, 36))), lambai = eio(u(t, 34.4, 34.9)) * (1 - eio(u(t, 37.2, 37.8)));
+  rb.kepala.r = [lesu * .42 + condong * .22 - senang * .15 - akhir * .12 - kaget * .18 + Math.sin(t * 1.3) * .015, lihatJendela * -.7 + akhir * -.25, penasaran * .28 * Math.sin(t * .9 + .5) + penasaran * .15 + akhir * .12 + kaget * .3 + lambai * .12 * Math.sin(t * 2)];
   rb.badan.r = [lesu * .12 + condong * .1, 0, 0]; rb.panel.r = rb.badan.r; rb.tombol.r = [Math.PI / 2 + lesu * .12, 0, 0];
   // arms: hang / swing when walking / reach / cheer
   const ayun = P.berjalan ? Math.sin(P.langkah) * .45 : Math.sin(t * 1.7) * .03;
   const raih = eio(u(t, 20.6, 21.6)) * (1 - eio(u(t, 23.6, 24.6)));
-  rb.bahuL.r = [ayun - senang * 2.6, 0, -.12 - lesu * .05 + senang * .3]; rb.bahuR.r = [-ayun - raih * 1.25 - senang * 2.6 + raih * Math.sin(t * 3) * .05, raih * -.25, .12 + lesu * .05 - senang * .3];
+  rb.bahuL.r = [ayun - senang * 2.6, 0, -.12 - lesu * .05 + senang * .3]; rb.bahuR.r = [-ayun - raih * 1.25 - senang * 2.6 - lambai * 2.7 + raih * Math.sin(t * 3) * .05, raih * -.25, .12 + lesu * .05 - senang * .3 + lambai * (.2 + Math.sin(t * 10) * .45)];
   // eye
   let nyala = t < 8.2 ? 0 : t < 8.9 ? (Math.sin(t * 60) > 0 ? .9 : .15) * u(t, 8.2, 8.9) + u(t, 8.2, 8.9) * .3 : 1;
-  nyala *= 1 + .5 * eio(u(t, 20.2, 21)) * (1 - eio(u(t, 24, 25))) + .3 * senang;
+  nyala *= 1 + .5 * eio(u(t, 20.2, 21)) * (1 - eio(u(t, 24, 25))) + .3 * senang + .35 * lambai;
   const kd = (t + .7) % 3.4, kedip = t > 9 && kd < .16 ? Math.abs(kd - .08) / .08 : 1;
   rb.mata.s = [.16, .008, .16 * Math.max(.08, kedip)]; rb.mata.mat.emi = [nyala * .25, nyala * .6, nyala * .95]; rb.mata.mat.col = mixV([.08, .09, .1], [1, 1, 1], klem(nyala));
   rb.kilap.vis = nyala > .2 || true;
-  const ant = t > 8.5 ? .6 + .4 * Math.sin(t * 3) + senang * 1.5 : .05; rb.bohlam.mat.emi = [ant * 1.6, ant * .7, ant * .2]; rb.bohlam.mat.col = [1, .6, .3];
+  const ant = t > 8.5 ? .6 + .4 * Math.sin(t * 3) + (senang + lambai) * 1.5 * (.6 + .4 * Math.sin(t * 12)) : .05; rb.bohlam.mat.emi = [ant * 1.6, ant * .7, ant * .2]; rb.bohlam.mat.col = [1, .6, .3];
   rb.blob.t = [P.pos[0], .004, P.pos[2]]; rb.blob.s = [.45 - hop, .4 - hop, 1];
   return { nyala, P };
 }
@@ -604,7 +622,8 @@ function kamera(t, D, P, potret) {
   else if (t < 25) { const k = eio((t - 18) / 7);
     c = { pos: [lerp(1.15, 1.02, k), lerp(.64, .6, k), lerp(-1.62, -1.72, k)], target: [.3, .5, -1.95], fov: 38 }; }
   else if (t < 32) { const k = eio((t - 25) / 7); c = { pos: [lerp(-.5, -.42, k), lerp(.4, .44, k), lerp(-.62, -.78, k)], target: [.4, lerp(.75, .88, k), -2.3], fov: 46 }; }
-  else { const k = eio((t - 32) / 8); c = { pos: lerpV([1.05, .72, -.75], [1.95, 1.45, 1.1], k), target: [.35, lerp(.55, .75, k), -1.95], fov: 42 }; }
+  else if (t < 40) { const k = eio((t - 32) / 8); c = { pos: [lerp(1.28, 1.12, k), lerp(.7, .64, k), lerp(-1.3, -1.42, k)], target: [.4, .5, -1.98], fov: 40 }; }
+  else { const k = eio((t - 40) / 7); c = { pos: lerpV([1.05, .72, -.75], [1.95, 1.45, 1.1], k), target: [.35, lerp(.55, .75, k), -1.95], fov: 42 }; }
   // handheld drift
   c.pos = [c.pos[0] + nz(t * .4, 1) * .008, c.pos[1] + nz(t * .35, 2) * .006, c.pos[2] + nz(t * .3, 3) * .008];
   let fov = c.fov * Math.PI / 180;
@@ -658,11 +677,11 @@ const BPM = 76, E8 = 60 / BPM / 2;
 const AKOR_HUJAN = [[41, [57, 60, 64]], [40, [55, 59, 62]], [38, [57, 60, 65]], [36, [55, 59, 64]]];
 const AKOR_CERAH = [[41, [57, 60, 64, 69]], [43, [59, 62, 67]], [40, [59, 64, 67]], [45, [60, 64, 69]], [38, [60, 65, 69]], [43, [59, 62, 65]], [36, [60, 64, 67, 72]], [36, [60, 64, 67, 71]]];
 const MELODI = { 2: [[0, 76, 3], [4, 74, 2], [6, 72, 2]], 3: [[0, 71, 4], [4, 72, 4]], 4: [[0, 69, 3], [3, 72, 1], [4, 74, 4]], 5: [[0, 76, 2], [2, 79, 2], [4, 76, 4]], 6: [[0, 74, 4], [4, 72, 2], [6, 71, 2]], 7: [[0, 72, 8]],
-  8: [[0, 81, 2], [2, 79, 2], [4, 76, 4]], 9: [[0, 79, 3], [3, 81, 1], [4, 83, 4]], 10: [[0, 84, 2], [2, 83, 2], [4, 79, 4]], 11: [[0, 81, 3], [3, 79, 1], [4, 76, 4]] };
+  8: [[0, 81, 2], [2, 79, 2], [4, 76, 4]], 9: [[0, 79, 3], [3, 81, 1], [4, 83, 4]], 10: [[0, 84, 2], [2, 83, 2], [4, 79, 4]], 11: [[0, 81, 3], [3, 79, 1], [4, 76, 4]], 12: [[0, 79, 2], [2, 81, 2], [4, 84, 4]], 13: [[0, 83, 3], [3, 81, 1], [4, 79, 4]], 14: [[0, 76, 4], [4, 79, 4]] };
 let jadwal = -1;
 function langkahMusik(i, at) {
   const bar = Math.floor(i / 8), pos = i % 8;
-  if (bar >= 12) { if (bar === 12 && pos === 0) { [36, 48, 55, 60, 64, 67, 71, 74].forEach((m, k) => piano(m, at + k * .07, .09, 6)); pad([60, 64, 67, 71], at, 4, .01); lonceng(88, at + .9, .03); } return; }
+  if (bar >= 15) { if (bar === 15 && pos === 0) { [36, 48, 55, 60, 64, 67, 71, 74].forEach((m, k) => piano(m, at + k * .07, .09, 6)); pad([60, 64, 67, 71], at, 4, .01); lonceng(88, at + .9, .03); } return; }
   const cerah = bar >= 8, [ba, ak] = cerah ? AKOR_CERAH[(bar - 8) % 8] : AKOR_HUJAN[bar % 4];
   if (pos === 0) { piano(ba, at, .13, 5); if (bar >= 2) piano(ba + 12, at + .01, .06, 4); if (cerah) pad(ak, at, E8 * 8, .007); }
   if (bar >= 1 && pos % 2 === 1 || (cerah && pos % 2 === 0 && pos)) piano(ak[(pos >> 1) % ak.length] + (pos > 4 ? 12 : 0), at, cerah ? .055 : .045, 3);
@@ -683,8 +702,43 @@ const ACARA = [
   ...Array.from({ length: 10 }, (_, k) => [12.3 + k * .33 + .16, t => { klik(t, .05); if (k % 3 === 0) desing(t, .18, .015, 500, 700); }]),
   [20.6, t => { desing(t, .6, .03, 300, 800); }], [21.8, t => { bip(900, 1300, t, .2, .04); }], [23.2, t => lonceng(84, t, .025)],
   [28.4, t => { [88, 91, 95, 100].forEach((m, k) => lonceng(m, t + k * .12, .02)); }],
-  [29.5, t => { bip(2800, 3900, t, .08, .02); bip(3000, 4200, t + .12, .08, .02); }], [33.5, t => { bip(3100, 4300, t, .07, .02); bip(2700, 3800, t + .1, .07, .02); }],
+  [29.5, t => { bip(2800, 3900, t, .08, .02); bip(3000, 4200, t + .12, .08, .02); }],
+  [32.5, t => { for (let k = 0; k < 9; k++) desing(t + k * .1, .08, .012, 900, 1400); }],
+  [33.7, t => { bip(3200, 4400, t, .07, .03); bip(3500, 4800, t + .11, .07, .03); bip(3000, 4200, t + .22, .09, .03); }],
+  [34.5, t => { bip(900, 1400, t, .12, .045); bip(1300, 1800, t + .16, .14, .045); }],
+  [35.2, t => { bip(3400, 4600, t, .06, .03); bip(3600, 5000, t + .09, .06, .03); }], [37.3, t => { bip(3100, 4300, t, .07, .03); bip(2900, 4100, t + .1, .07, .03); bip(3300, 4700, t + .2, .08, .03); }],
+  [41.0, t => { [84, 88, 91].forEach((m, k) => lonceng(m, t + k * .15, .02)); }],
   [30.2, t => { bip(300, 700, t, .22, .06, 'triangle'); bip(1200, 1800, t + .05, .1, .04); }], [30.8, t => { bip(320, 760, t, .22, .06, 'triangle'); bip(1500, 2100, t + .05, .1, .04); }],
+];
+
+// ---------- the little bird that drops by
+function animasiBurung(t, D) {
+  const b = D.burung, dari = [1.55, 1.75, -1.05];
+  const f = u(t, 32.4, 33.65), terbang = t < 33.65;
+  b.root.vis = t > 32.3;
+  let p;
+  if (terbang) { const e = halus(f); p = [lerp(dari[0], BURUNG_DARAT[0], e), lerp(dari[1], BURUNG_DARAT[1], e) + Math.sin(e * Math.PI) * .18, lerp(dari[2], BURUNG_DARAT[2], e)]; }
+  else { const hop = Math.max(0, Math.sin(u(t, 35.1, 35.45) * Math.PI)) * .035 + Math.max(0, Math.sin(u(t, 37.2, 37.55) * Math.PI)) * .03; p = [BURUNG_DARAT[0] + u(t, 37.2, 37.55) * .02, BURUNG_DARAT[1] + hop, BURUNG_DARAT[2]]; }
+  const yaw = terbang ? Math.atan2(BURUNG_DARAT[0] - dari[0], BURUNG_DARAT[2] - dari[2]) : lerp(-1.3, -1.75, u(t, 33.6, 34.2));
+  b.root.t = p; b.root.r = [terbang ? .25 : 0, yaw, 0];
+  const kepak = terbang || (t > 35.05 && t < 35.5) || (t > 37.15 && t < 37.6) ? Math.sin(t * 38) : 0, lipat = terbang ? 0 : 1;
+  b.sayapL.r = [0, 0, lerp(.9 + kepak * .9, .15, lipat * (kepak ? .4 : 1))]; b.sayapR.r = [0, 0, -lerp(.9 + kepak * .9, .15, lipat * (kepak ? .4 : 1))];
+  b.kepala.r = [Math.sin(t * 3.1) * .12 * (1 - lipat * 0) + (t > 34 && t < 36.8 ? -.25 : 0), t > 33.9 ? Math.sin(t * 1.7) * .5 : 0, Math.sin(t * 2.3) * .25];
+}
+
+const SUB = [
+  [0.8, 3.6, 'Some days, the quiet gets loud.'],
+  [3.9, 6.8, 'Like the whole world forgot you’re even here.'],
+  [8.3, 11.6, 'But even the smallest light can still turn on.'],
+  [12.6, 15.2, 'You don’t need to have it all figured out.'],
+  [15.4, 17.8, 'Just take one small step.'],
+  [18.6, 21.6, 'Find something to care for. Even something tiny.'],
+  [22.0, 24.8, 'Taking care of something is how we heal, too.'],
+  [25.8, 28.6, 'Rain doesn’t last forever.'],
+  [29.0, 31.8, 'And neither does feeling alone.'],
+  [33.4, 36.4, 'Sometimes, the right ones find their way to you.'],
+  [36.8, 39.7, 'You were never as alone as you felt.'],
+  [41.0, 44.9, 'So keep your little light on.'],
 ];
 
 const cv = document.getElementById('gl'), tk = document.getElementById('teks'), X = tk.getContext('2d');
@@ -696,7 +750,7 @@ function ukur() { const r = cv.getBoundingClientRect(), dpr = Math.min(devicePix
 new ResizeObserver(ukur).observe(cv);
 
 function render() {
-  const potret = FORMAT === '916', L = cahayaDunia(T, D, R), ar = animasiRobot(T, D), tn = animasiTanaman(T, D), cam = kamera(T, D, ar.P, potret);
+  const potret = FORMAT === '916', L = cahayaDunia(T, D, R), ar = animasiRobot(T, D), tn = animasiTanaman(T, D), cam = kamera(T, D, ar.P, potret); animasiBurung(T, D);
   const M = D.MAT;
   M.luar.mix2 = L.cerah; M.luar.col = mixV([.95, .95, 1], [1.75, 1.6, 1.4], L.cerah); M.hujan.alpha = .7 * L.hujan; M.hujan.uvOff = [0, T * 2.2]; M.kaca.alpha = .12 + .25 * L.hujan; M.kaca.uvOff = [0, -T * .004];
   D.hujanN.vis = L.hujan > .01; D.bohlam.mat.emi = L.lampu.map(v => v * 1.6);
@@ -704,19 +758,26 @@ function render() {
   const debu = [];
   for (const d of D.DEBU) { d.n.t = [d.x + Math.sin(T * .3 + d.f) * .06, d.y + Math.sin(T * .21 + d.f * 2) * .05, d.z + Math.cos(T * .25 + d.f) * .06]; d.n.s = [.012 * d.s, .012 * d.s, 1];
     const dx = cam.pos[0] - d.n.t[0], dz = cam.pos[2] - d.n.t[2]; d.n.r = [0, Math.atan2(dx, dz), 0]; d.n.mat = { ...D.MAT.debu, alpha: .8 * L.cerah * (.5 + .5 * Math.sin(T * 1.3 + d.f)) }; if (L.cerah > .05) debu.push(d.n); }
-  const obj = []; kumpulkan([...D.statis, ...D.nodeRobot, D.tanaman.pot, D.tanaman.tanah, D.tanaman.batang, D.tanaman.daunL, D.tanaman.daunR, ...D.tanaman.kelopak, D.tanaman.putik, ...debu], obj);
+  const obj = []; kumpulkan([...D.statis, ...D.nodeRobot, ...(D.burung.root.vis ? D.nodeBurung : []), D.tanaman.pot, D.tanaman.tanah, D.tanaman.batang, D.tanaman.daunL, D.tanaman.daunR, ...D.tanaman.kelopak, D.tanaman.putik, ...debu], obj);
   for (const o of obj) if (o.mat.alpha < 1 || o.mat.aditif) { const p = [o.model[12], o.model[13], o.model[14]]; o.z = Math.hypot(p[0] - cam.pos[0], p[1] - cam.pos[1], p[2] - cam.pos[2]); }
   // point lights: lamp, the robot's eye, antenna
   const kp = D.rb, head = M4.trs(kp.root.t, kp.root.r, [1, 1, 1]), eyeW = M4.xf(M4.mul(head, M4.trs(kp.kepala.t, kp.kepala.r, [1, 1, 1])), [0, .12, .3]);
   const pl = [{ pos: [-.55, 1.95, -.9], col: L.lampu, r: 4.8 }, { pos: eyeW, col: [.35 * ar.nyala, .85 * ar.nyala, 1.5 * ar.nyala], r: 1.1 }];
-  const fade = Math.min(u(T, 0, 1), 1 - u(T, 37.6, 38.6) * .88, 1 - u(T, DUR - .5, DUR));
+  const fade = Math.min(u(T, 0, 1), 1 - u(T, 45.6, 46.6) * .88, 1 - u(T, DUR - .5, DUR));
   R.gambar({ objek: obj, cam, sun: L.sun, sunTarget: [.2, .8, -1.4], sunSize: 3.6, sky: L.sky, ground: L.ground, fog: L.fog, pl, rim: L.rim, t: T,
     rayPos: [D.WX, 1.7, -3.3], post: { ...L.post, fade } });
   // title
   X.setTransform(1, 0, 0, 1, 0, 0); X.clearRect(0, 0, tk.width, tk.height);
-  const a = u(T, 38.4, 39.4) * (1 - u(T, DUR - .5, DUR)); if (a > 0) { const s = tk.width / (potret ? 720 : 1280); X.save(); X.globalAlpha = a; X.textAlign = 'center'; X.textBaseline = 'middle';
+  // subtitles
+  { const s = tk.width / (potret ? 720 : 1280); for (const [a0, b0, teks] of SUB) { const al = Math.min(u(T, a0, a0 + .45), 1 - u(T, b0 - .45, b0)); if (al <= 0) continue;
+    X.save(); X.globalAlpha = al; X.textAlign = 'center'; X.textBaseline = 'middle'; X.font = `500 ${Math.round((potret ? 27 : 26) * s)}px system-ui, -apple-system, "Segoe UI", sans-serif`;
+    let maks = (potret ? 620 : 1000) * s; const tot = X.measureText(teks + ' ').width; if (tot > maks) maks = tot / Math.ceil(tot / maks) * 1.12; const kata = teks.split(' '), baris = [[]]; let w = 0; for (const k of kata) { const lw = X.measureText(k + ' ').width; if (w + lw > maks && baris[baris.length - 1].length) { baris.push([]); w = 0; } baris[baris.length - 1].push(k); w += lw; }
+    const y0 = tk.height * (potret ? .8 : .86), lh = (potret ? 38 : 34) * s;
+    baris.forEach((b, i) => { const tx = b.join(' '), yy = y0 + (i - (baris.length - 1) / 2) * lh; X.shadowColor = 'rgba(0,0,0,.85)'; X.shadowBlur = 10 * s; X.lineJoin = 'round'; X.lineWidth = 4 * s; X.strokeStyle = 'rgba(0,0,0,.45)'; X.strokeText(tx, tk.width / 2, yy); X.fillStyle = '#fff4dc'; X.fillText(tx, tk.width / 2, yy); });
+    X.restore(); } }
+  const a = u(T, 46.4, 47.4) * (1 - u(T, DUR - .5, DUR)); if (a > 0) { const s = tk.width / (potret ? 720 : 1280); X.save(); X.globalAlpha = a; X.textAlign = 'center'; X.textBaseline = 'middle';
     X.fillStyle = '#f7efe2'; X.font = `600 ${Math.round((potret ? 64 : 72) * s)}px system-ui, sans-serif`; X.shadowColor = 'rgba(127,212,255,.6)'; X.shadowBlur = 24 * s; X.fillText('Little Light', tk.width / 2, tk.height * .46);
-    X.shadowBlur = 0; X.globalAlpha = a * u(T, 39.2, 40); X.fillStyle = 'rgba(247,239,226,.8)'; X.font = `500 ${Math.round(20 * s)}px system-ui, sans-serif`; X.fillText('a tiny robot, a tiny sprout, a little light', tk.width / 2, tk.height * .46 + 62 * s); X.restore(); }
+    X.shadowBlur = 0; X.globalAlpha = a * u(T, 47.2, 48); X.fillStyle = 'rgba(247,239,226,.8)'; X.font = `500 ${Math.round(20 * s)}px system-ui, sans-serif`; X.fillText('a tiny robot, a tiny sprout, a little light', tk.width / 2, tk.height * .46 + 62 * s); X.restore(); }
 }
 const bMain = document.getElementById('bMain'), mulaiEl = document.getElementById('mulai'), isi = document.getElementById('isi'), waktuEl = document.getElementById('waktu'), bar = document.getElementById('bar');
 function setMain(v) { main = v; bMain.textContent = v ? '❚❚' : '▶'; bMain.setAttribute('aria-label', v ? 'Pause' : 'Play'); if (A) v ? A.resume() : A.suspend(); }
